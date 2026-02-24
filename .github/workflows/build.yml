@@ -1,5 +1,4 @@
-name: Build haydn Kernel A16
-
+name: Build haydn A16 crDroid
 on:
   workflow_dispatch:
 
@@ -12,37 +11,39 @@ jobs:
       - name: Build Kernel
         run: |
           sudo apt update -y
-          sudo apt install -y git build-essential bc bison flex libncurses5-dev libssl-dev libelf-dev zip
+          sudo apt install -y git build-essential bc bison flex libncurses5-dev libssl-dev libelf-dev zip curl
 
-          # 只配置用户名，不碰 askpass
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@github.com"
-
-          # 下载内核源码
-          git clone --depth 1 -b https://github.com/crdroidandroid/android_kernel_xiaomi_sm8350.git
+          # 你要的 crDroid sm8350 内核（直接zip下载，不走git，不报错）
+          curl -L https://github.com/crdroidandroid/android_kernel_xiaomi_sm8350/archive/refs/heads/14.0.zip -o kernel.zip
+          unzip -q kernel.zip
+          mv android_kernel_xiaomi_sm8350-14.0 kernel
           cd kernel
 
-          # 配置
-          make ARCH=arm64 lahaina_qgki_defconfig
-
-          # 下载编译器
-          git clone --depth 1 https://github.com/kdrag0n/proton-clang.git clang
+          # 编译器
+          curl -L https://github.com/kdrag0n/proton-clang/archive/refs/heads/master.zip -o clang.zip
+          unzip -q clang.zip
+          mv proton-clang-master clang
           export PATH=$PWD/clang/bin:$PATH
 
+          # haydn 正确配置
+          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang haydn_defconfig
+
           # 编译
-          make -j$(nproc) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang Image.gz-dtb
+          make -j$(nproc) ARCH=arm64 CROSS_COMP=aarch64-linux-gnu- CC=clang Image.gz-dtb
 
           # 打包卡刷包
-          git clone --depth 1 https://github.com/osm0sis/AnyKernel3.git anykernel
+          curl -L https://github.com/osm0sis/AnyKernel3/archive/refs/heads/master.zip -o ak3.zip
+          unzip -q ak3.zip
+          mv AnyKernel3-master anykernel
           cp arch/arm64/boot/Image.gz-dtb anykernel/
           cd anykernel
-          zip -r9 haydn-a16-kernel.zip * -x .git* README.md
+          zip -r9 haydn-crdroid-a16-kernel.zip * -x '*.git*' README.md
 
           mkdir -p $GITHUB_WORKSPACE/out
-          cp haydn-a16-kernel.zip $GITHUB_WORKSPACE/out/
+          cp haydn-crdroid-a16-kernel.zip $GITHUB_WORKSPACE/out/
 
-      - name: Upload artifact
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: haydn-a16-kernel
+          name: haydn-crdroid-a16-kernel
           path: out/
