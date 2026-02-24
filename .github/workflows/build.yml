@@ -1,0 +1,41 @@
+name: Build haydn Kernel A16
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Kernel
+        run: |
+          sudo apt update
+          sudo apt install -y git build-essential bc bison flex libncurses5-dev libssl-dev libelf-dev zip
+
+          git clone --depth=1 -b lineage-22.0 https://github.com/LineageOS/android_kernel_xiaomi_lahaina kernel
+          cd kernel
+
+          git clone --depth=1 https://github.com/tiann/KernelSU KernelSU
+          cp -r KernelSU/kernel/* ./
+
+          git clone --depth=1 https://github.com/kdrag0n/proton-clang clang
+          export PATH=$PWD/clang/bin:$PATH
+
+          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang lahaina_qgki_defconfig
+          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang -j$(nproc) Image.gz-dtb
+
+          git clone --depth=1 https://github.com/osm0sis/AnyKernel3 anykernel
+          cp arch/arm64/boot/Image.gz-dtb anykernel/
+          cd anykernel
+          zip -r9 haydn-a16-kernel.zip * -x .git* README.md
+
+          mkdir -p $GITHUB_WORKSPACE/out
+          cp haydn-a16-kernel.zip $GITHUB_WORKSPACE/out/
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: haydn-a16-kernel
+          path: out/
