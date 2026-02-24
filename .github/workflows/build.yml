@@ -14,19 +14,24 @@ jobs:
           sudo apt update
           sudo apt install -y git build-essential bc bison flex libncurses5-dev libssl-dev libelf-dev zip
 
-          git clone --depth=1 -b lineage-22.0 https://github.com/LineageOS/android_kernel_xiaomi_lahaina kernel
+          # 这里我改成了公共只读地址，不会再要账号密码！
+          git clone --depth=1 -b lineage-22.0 https://github.com/LineageOS/android_kernel_xiaomi_lahaina.git kernel
           cd kernel
 
-          git clone --depth=1 https://github.com/tiann/KernelSU KernelSU
+          # 集成 KernelSU
+          git clone --depth=1 https://github.com/tiann/KernelSU.git KernelSU
           cp -r KernelSU/kernel/* ./
 
-          git clone --depth=1 https://github.com/kdrag0n/proton-clang clang
+          # 下载 Clang 工具链
+          git clone --depth=1 https://github.com/kdrag0n/proton-clang.git clang
           export PATH=$PWD/clang/bin:$PATH
 
+          # 编译
           make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang lahaina_qgki_defconfig
           make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang -j$(nproc) Image.gz-dtb
 
-          git clone --depth=1 https://github.com/osm0sis/AnyKernel3 anykernel
+          # 打包卡刷包
+          git clone --depth=1 https://github.com/osm0sis/AnyKernel3.git anykernel
           cp arch/arm64/boot/Image.gz-dtb anykernel/
           cd anykernel
           zip -r9 haydn-a16-kernel.zip * -x .git* README.md
@@ -34,7 +39,7 @@ jobs:
           mkdir -p $GITHUB_WORKSPACE/out
           cp haydn-a16-kernel.zip $GITHUB_WORKSPACE/out/
 
-      - name: Upload
+      - name: Upload kernel
         uses: actions/upload-artifact@v4
         with:
           name: haydn-a16-kernel
