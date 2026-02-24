@@ -13,29 +13,28 @@ jobs:
         run: |
           sudo apt update -y
           sudo apt install -y git build-essential bc bison flex libncurses5-dev libssl-dev libelf-dev zip
-          
-          # 配置 git 不弹用户名
-          git config --global user.name "actions"
-          git config --global user.email "actions@github.com"
-          git config --global core.askpass "false"
 
-          # 克隆内核（加速地址）
+          # 只配置用户名，不碰 askpass
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+
+          # 下载内核源码
           git clone --depth 1 -b lineage-22.0 https://github.com/LineageOS/android_kernel_xiaomi_lahaina.git kernel
           cd kernel
 
-          # 编译配置（先不加 KernelSU，避免额外克隆报错）
-          make O=out ARCH=arm64 lahaina_qgki_defconfig
+          # 配置
+          make ARCH=arm64 lahaina_qgki_defconfig
 
-          # 下载 Clang
+          # 下载编译器
           git clone --depth 1 https://github.com/kdrag0n/proton-clang.git clang
           export PATH=$PWD/clang/bin:$PATH
 
           # 编译
-          make -j$(nproc) O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang
+          make -j$(nproc) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang Image.gz-dtb
 
           # 打包卡刷包
           git clone --depth 1 https://github.com/osm0sis/AnyKernel3.git anykernel
-          cp out/arch/arm64/boot/Image.gz-dtb anykernel/
+          cp arch/arm64/boot/Image.gz-dtb anykernel/
           cd anykernel
           zip -r9 haydn-a16-kernel.zip * -x .git* README.md
 
