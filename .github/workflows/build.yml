@@ -19,7 +19,7 @@ jobs:
           git config --global user.email "github-actions@github.com"
 
           # 下载内核源码
-          git clone --depth 1 -b https://github.com/crdroidandroid/android_kernel_xiaomi_sm8350.git kernel
+          git clone --depth 1 -b https://github.com/crdroidandroid/android_kernel_xiaomi_sm8350.git
           cd kernel
 
           # 配置
