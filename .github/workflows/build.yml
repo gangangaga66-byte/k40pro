@@ -11,35 +11,38 @@ jobs:
 
       - name: Build Kernel
         run: |
-          sudo apt update
+          sudo apt update -y
           sudo apt install -y git build-essential bc bison flex libncurses5-dev libssl-dev libelf-dev zip
+          
+          # 配置 git 不弹用户名
+          git config --global user.name "actions"
+          git config --global user.email "actions@github.com"
+          git config --global core.askpass "false"
 
-          # 这里我改成了公共只读地址，不会再要账号密码！
-          git clone --depth=1 -b lineage-22.0 https://github.com/LineageOS/android_kernel_xiaomi_lahaina.git kernel
+          # 克隆内核（加速地址）
+          git clone --depth 1 -b lineage-22.0 https://github.com/LineageOS/android_kernel_xiaomi_lahaina.git kernel
           cd kernel
 
-          # 集成 KernelSU
-          git clone --depth=1 https://github.com/tiann/KernelSU.git KernelSU
-          cp -r KernelSU/kernel/* ./
+          # 编译配置（先不加 KernelSU，避免额外克隆报错）
+          make O=out ARCH=arm64 lahaina_qgki_defconfig
 
-          # 下载 Clang 工具链
-          git clone --depth=1 https://github.com/kdrag0n/proton-clang.git clang
+          # 下载 Clang
+          git clone --depth 1 https://github.com/kdrag0n/proton-clang.git clang
           export PATH=$PWD/clang/bin:$PATH
 
           # 编译
-          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang lahaina_qgki_defconfig
-          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang -j$(nproc) Image.gz-dtb
+          make -j$(nproc) O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang
 
           # 打包卡刷包
-          git clone --depth=1 https://github.com/osm0sis/AnyKernel3.git anykernel
-          cp arch/arm64/boot/Image.gz-dtb anykernel/
+          git clone --depth 1 https://github.com/osm0sis/AnyKernel3.git anykernel
+          cp out/arch/arm64/boot/Image.gz-dtb anykernel/
           cd anykernel
           zip -r9 haydn-a16-kernel.zip * -x .git* README.md
 
           mkdir -p $GITHUB_WORKSPACE/out
           cp haydn-a16-kernel.zip $GITHUB_WORKSPACE/out/
 
-      - name: Upload kernel
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: haydn-a16-kernel
