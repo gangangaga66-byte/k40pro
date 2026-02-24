@@ -19,7 +19,7 @@ jobs:
           git config --global user.email "github-actions@github.com"
 
           # 下载内核源码
-          git clone --depth 1 -b lineage-22.0 https://github.com/LineageOS/android_kernel_xiaomi_lahaina.git kernel
+          git clone --depth 1 -b https://github.com/crdroidandroid/android_kernel_xiaomi_sm8350.git kernel
           cd kernel
 
           # 配置
